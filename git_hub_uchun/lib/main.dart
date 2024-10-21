@@ -4,65 +4,20 @@ void main() {
   runApp(
     MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: Birinchi(),
+      home: MyWidget(),
     ),
   );
 }
-
-final still = TextStyle(
-  color: Colors.black,
-  fontSize: 30,
-  fontWeight: FontWeight.bold,
-);
-
-class Birinchi extends StatefulWidget {
-  const Birinchi({super.key});
+class MyWidget extends StatefulWidget {
+  const MyWidget({super.key});
 
   @override
-  State<Birinchi> createState() => _BirinchiState();
+  State<MyWidget> createState() => _MyWidgetState();
 }
 
-class _BirinchiState extends State<Birinchi> {
-  void snackbar() {
-    final s = SnackBar(
-      action: SnackBarAction(
-        label: "return",
-        onPressed: () {
-          Navigator.pop(context);
-        },
-      ),
-      duration: Duration(
-        seconds: 2,
-      ),
-      content: Text(
-        "Salom",
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 30,
-          color: Colors.yellow
-        ),
-      ),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(s);
-  }
-
+class _MyWidgetState extends State<MyWidget> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: ElevatedButton(
-          onPressed: () {
-            snackbar();
-          },
-          child: Text(
-            "zor",
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 30,
-            ),
-          ),
-        ),
-      ),
-    );
+    return const Placeholder();
   }
 }
