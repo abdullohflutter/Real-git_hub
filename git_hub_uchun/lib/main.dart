@@ -39,6 +39,7 @@ class _BirinchiState extends State<Birinchi> {
         style: TextStyle(
           fontWeight: FontWeight.bold,
           fontSize: 30,
+          color: Colors.yellow
         ),
       ),
     );
