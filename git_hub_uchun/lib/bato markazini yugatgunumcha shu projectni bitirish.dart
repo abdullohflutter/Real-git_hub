@@ -176,24 +176,3 @@ class _WidgetSearchScreenState extends State<WidgetSearchScreen> {
     );
   }
 }
-
-List<String> nom = [
-  "assets/sushi.jpg",
-  "assets/sushi2.jpg",
-  "assets/sushi.jpg",
-  "assets/sushi2.jpg",
-];
-
-List<String> info = [
-  "Get special discount",
-  "Get special discount",
-  "Get special discount",
-  "Get special discount",
-];
-
-List<String> discounts = [
-  "Up to 85%",
-  "Up to 50%",
-  "Up to 70%",
-  "Up to 30%",
-];
