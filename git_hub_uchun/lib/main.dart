@@ -1,79 +1,209 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 void main() {
-  runApp(
-    MaterialApp(
-      home: Birinchi(),
-    ),
-  );
+  runApp(const MyApp());
 }
 
-class Birinchi extends StatefulWidget {
-  const Birinchi({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
 
   @override
-  State<Birinchi> createState() => _BirinchiState();
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Qur\'on',
+      theme: ThemeData.light(),
+      darkTheme: ThemeData.dark(),
+      themeMode: ThemeMode.system,
+      home: const QuranScreen(),
+    );
+  }
 }
 
-class _BirinchiState extends State<Birinchi> {
-  List<Map<String, dynamic>> surahData = [];
+class QuranScreen extends StatefulWidget {
+  const QuranScreen({Key? key}) : super(key: key);
 
-  Future<void> data() async {
-    final response = await http.get(
-      Uri.parse("https://api.alquran.cloud/v1/quran/uz.sodik"),
-    );
-    if (response.statusCode == 200) {
-      final jsondata = jsonDecode(response.body);
-      final surahs = jsondata['data']['surahs']; // List of surahs
+  @override
+  State<QuranScreen> createState() => _QuranScreenState();
+}
 
-      // Extracting each surah name with ayah numbers
-      for (var surah in surahs) {
-        List<int> ayahNumbers = [];
-        for (var ayah in surah['ayahs']) {
-          ayahNumbers.add(ayah['number']);
-        }
-        surahData.add({
-          'name': surah['name'],
-          'ayahNumbers': ayahNumbers,
-        });
-      }
-      setState(() {});
-    } else {
-      throw Exception("Failed to load data");
-    }
-  }
+class _QuranScreenState extends State<QuranScreen> {
+  bool _isDarkMode = false;
+  List<dynamic> uzSurahs = [];
+  List<dynamic> arSurahs = [];
+  List<dynamic> filteredUzSurahs = [];
+  List<dynamic> filteredArSurahs = [];
 
   @override
   void initState() {
     super.initState();
-    data();
+    fetchUzSurahs();
+    fetchArSurahs();
+  }
+
+  Future<void> fetchUzSurahs() async {
+    final response = await http.get(
+      Uri.parse('https://api.alquran.cloud/v1/quran/uz.sodik'),
+    );
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      setState(() {
+        uzSurahs = data['data']['surahs'];
+        filteredUzSurahs = uzSurahs;
+      });
+    }
+  }
+
+  Future<void> fetchArSurahs() async {
+    final response = await http.get(
+      Uri.parse('https://api.alquran.cloud/v1/quran/quran-simple'),
+    );
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      setState(() {
+        arSurahs = data['data']['surahs'];
+        filteredArSurahs = arSurahs;
+      });
+    }
+  }
+
+  void _toggleDarkMode() {
+    setState(() {
+      _isDarkMode = !_isDarkMode;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
+      home: Scaffold(
+        appBar: AppBar(
+          title: const Text('Qur\'on Suralari'),
+          actions: [
+            IconButton(
+              icon: Icon(_isDarkMode ? Icons.light_mode : Icons.dark_mode),
+              onPressed: _toggleDarkMode,
+            ),
+          ],
+        ),
+        body: Column(
+          children: [
+            Expanded(
+              child: filteredUzSurahs.isEmpty || filteredArSurahs.isEmpty
+                  ? const Center(child: CircularProgressIndicator())
+                  : ListView.builder(
+                      itemCount: filteredUzSurahs.length,
+                      itemBuilder: (context, index) {
+                        final uzSurah = filteredUzSurahs[index];
+                        final arSurah = filteredArSurahs[index];
+                        return ListTile(
+                          title: Text(
+                            '${index + 1}. ${uzSurah['englishName']}',
+                            style: TextStyle(
+                              color: _isDarkMode ? Colors.white : Colors.black,
+                            ),
+                          ),
+                          subtitle: Text(
+                            uzSurah['name'],
+                            style: TextStyle(
+                              color:
+                                  _isDarkMode ? Colors.white70 : Colors.black87,
+                            ),
+                          ),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => SurahDetailScreen(
+                                  uzSurah: uzSurah,
+                                  arSurah: arSurah,
+                                  isDarkMode: _isDarkMode,
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class SurahDetailScreen extends StatefulWidget {
+  final dynamic uzSurah;
+  final dynamic arSurah;
+  final bool isDarkMode;
+
+  const SurahDetailScreen({
+    Key? key,
+    required this.uzSurah,
+    required this.arSurah,
+    required this.isDarkMode,
+  }) : super(key: key);
+
+  @override
+  State<SurahDetailScreen> createState() => _SurahDetailScreenState();
+}
+
+class _SurahDetailScreenState extends State<SurahDetailScreen> {
+  bool _isUzbek = true;
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Qur'on Suralari")),
+      appBar: AppBar(
+        title: Text(widget.uzSurah['englishName']),
+        actions: [
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _isUzbek = true;
+              });
+            },
+            child: Text(
+              'O\'zbek',
+              style: TextStyle(color: _isUzbek ? Colors.amber : Colors.white),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _isUzbek = false;
+              });
+            },
+            child: Text(
+              'Arab',
+              style: TextStyle(
+                color: !_isUzbek ? Colors.amber : Colors.black,
+              ),
+            ),
+          ),
+        ],
+      ),
       body: ListView.builder(
-        itemCount: surahData.length,
+        itemCount: widget.uzSurah['ayahs'].length,
         itemBuilder: (context, index) {
-          return Card(
-            margin: EdgeInsets.all(10),
-            child: Padding(
-              padding: EdgeInsets.all(10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Sura nomi: ${surahData[index]['name']}",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 5),
-                  Text(
-                    "Ayah raqamlari: ${surahData[index]['ayahNumbers'].join(", ")}",
-                  ),
-                ],
+          final uzAyah = widget.uzSurah['ayahs'][index];
+          final arAyah = widget.arSurah['ayahs'][index];
+
+          final text = _isUzbek
+              ? uzAyah['text'] ?? 'O\'zbekcha matn mavjud emas'
+              : arAyah['text'] ?? 'Arabcha matn mavjud emas';
+
+          return Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              '${index + 1}. $text',
+              style: TextStyle(
+                color: widget.isDarkMode ? Colors.white : Colors.black,
               ),
             ),
           );
