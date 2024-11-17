@@ -1,214 +1,181 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:audioplayers/audioplayers.dart';
 
-void main() {
-  runApp(const MyApp());
-}
+void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Qur\'on',
-      theme: ThemeData.light(),
-      darkTheme: ThemeData.dark(),
-      themeMode: ThemeMode.system,
-      home: const QuranScreen(),
+      home: MusicPlayerScreen(),
     );
   }
 }
 
-class QuranScreen extends StatefulWidget {
-  const QuranScreen({Key? key}) : super(key: key);
-
+class MusicPlayerScreen extends StatefulWidget {
   @override
-  State<QuranScreen> createState() => _QuranScreenState();
+  _MusicPlayerScreenState createState() => _MusicPlayerScreenState();
 }
 
-class _QuranScreenState extends State<QuranScreen> {
-  bool _isDarkMode = false;
-  List<dynamic> uzSurahs = [];
-  List<dynamic> arSurahs = [];
-  List<dynamic> filteredUzSurahs = [];
-  List<dynamic> filteredArSurahs = [];
+class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  final List<Map<String, String>> _songs = [
+    {"title": "AKA MAKASI", "artist": "Munisa Rizayeva", "path": "munisa.mp3"},
+    {"title": "TEOTIMUR", "artist": "Artist 2", "path": "ashula.mp3"},
+    {"title": "Ummmon", "artist": "Artist 3", "path": "ummon.mp3"},
+  ];
+  int _currentIndex = 0;
+  bool _isPlaying = false;
+  Duration _currentPosition = Duration.zero;
+  Duration _totalDuration = Duration.zero;
 
   @override
   void initState() {
     super.initState();
-    fetchUzSurahs();
-    fetchArSurahs();
-  }
-
-  Future<void> fetchUzSurahs() async {
-    final response = await http.get(
-      Uri.parse('https://api.alquran.cloud/v1/quran/uz.sodik'),
-    );
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
+    _audioPlayer.onPositionChanged.listen((position) {
       setState(() {
-        uzSurahs = data['data']['surahs'];
-        filteredUzSurahs = uzSurahs;
+        _currentPosition = position;
       });
-    }
-  }
-
-  Future<void> fetchArSurahs() async {
-    final response = await http.get(
-      Uri.parse('https://api.alquran.cloud/v1/quran/quran-simple'),
-    );
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
+    });
+    _audioPlayer.onDurationChanged.listen((duration) {
       setState(() {
-        arSurahs = data['data']['surahs'];
-        filteredArSurahs = arSurahs;
+        _totalDuration = duration;
       });
-    }
+    });
+    _audioPlayer.onPlayerComplete.listen((_) {
+      _nextTrack();
+    });
   }
 
-  void _toggleDarkMode() {
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
+  void _playPause() async {
+    if (_isPlaying) {
+      await _audioPlayer.pause();
+    } else {
+      await _audioPlayer.play(AssetSource(_songs[_currentIndex]['path']!));
+    }
     setState(() {
-      _isDarkMode = !_isDarkMode;
+      _isPlaying = !_isPlaying;
+    });
+  }
+
+  void _nextTrack() {
+    if (_currentIndex < _songs.length - 1) {
+      _currentIndex++;
+    } else {
+      _currentIndex = 0;
+    }
+    _playTrack();
+  }
+
+  void _previousTrack() {
+    if (_currentIndex > 0) {
+      _currentIndex--;
+    } else {
+      _currentIndex = _songs.length - 1;
+    }
+    _playTrack();
+  }
+
+  void _playTrack() async {
+    await _audioPlayer.play(AssetSource(_songs[_currentIndex]['path']!));
+    setState(() {
+      _isPlaying = true;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text('Qur\'on Suralari'),
-          actions: [
-            IconButton(
-              icon: Icon(_isDarkMode ? Icons.light_mode : Icons.dark_mode),
-              onPressed: _toggleDarkMode,
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    _songs[_currentIndex]['title']!,
+                    style: TextStyle(color: Colors.white, fontSize: 24),
+                    textAlign: TextAlign.center,
+                  ),
+                  Text(
+                    _songs[_currentIndex]['artist']!,
+                    style: TextStyle(color: Colors.grey, fontSize: 18),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
-        body: Column(
-          children: [
-            Expanded(
-              child: filteredUzSurahs.isEmpty || filteredArSurahs.isEmpty
-                  ? const Center(child: CircularProgressIndicator())
-                  : ListView.builder(
-                      itemCount: filteredUzSurahs.length,
-                      itemBuilder: (context, index) {
-                        final uzSurah = filteredUzSurahs[index];
-                        final arSurah = filteredArSurahs[index];
-                        return ListTile(
-                          title: Text(
-                            '${index + 1}. ${uzSurah['englishName']}',
-                            style: TextStyle(
-                              color: _isDarkMode ? Colors.white : Colors.black,
-                            ),
-                          ),
-                          subtitle: Text(
-                            uzSurah['name'],
-                            style: TextStyle(
-                              color:
-                                  _isDarkMode ? Colors.white70 : Colors.black87,
-                            ),
-                          ),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => SurahDetailScreen(
-                                  uzSurah: uzSurah,
-                                  arSurah: arSurah,
-                                  isDarkMode: _isDarkMode,
-                                ),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
+          ),
+          Slider(
+            activeColor: Colors.white,
+            inactiveColor: Colors.grey,
+            min: 0,
+            max: _totalDuration.inSeconds.toDouble(),
+            value: _currentPosition.inSeconds.toDouble(),
+            onChanged: (value) {
+              _audioPlayer.seek(Duration(seconds: value.toInt()));
+            },
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _formatDuration(_currentPosition),
+                  style: TextStyle(color: Colors.white),
+                ),
+                Text(
+                  _formatDuration(_totalDuration),
+                  style: TextStyle(color: Colors.white),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                onPressed: _previousTrack,
+                icon: Icon(Icons.skip_previous, color: Colors.white),
+                iconSize: 36,
+              ),
+              IconButton(
+                onPressed: _playPause,
+                icon: Icon(
+                  _isPlaying
+                      ? Icons.pause_circle_filled
+                      : Icons.play_circle_filled,
+                  color: Colors.white,
+                ),
+                iconSize: 64,
+              ),
+              IconButton(
+                onPressed: _nextTrack,
+                icon: Icon(Icons.skip_next, color: Colors.white),
+                iconSize: 36,
+              ),
+            ],
+          ),
+          SizedBox(height: 30),
+        ],
       ),
     );
   }
-}
 
-class SurahDetailScreen extends StatefulWidget {
-  final dynamic uzSurah;
-  final dynamic arSurah;
-  final bool isDarkMode;
-
-  const SurahDetailScreen({
-    Key? key,
-    required this.uzSurah,
-    required this.arSurah,
-    required this.isDarkMode,
-  }) : super(key: key);
-
-  @override
-  State<SurahDetailScreen> createState() => _SurahDetailScreenState();
-}
-
-class _SurahDetailScreenState extends State<SurahDetailScreen> {
-  bool _isUzbek = true;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.uzSurah['englishName']),
-        actions: [
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _isUzbek = true;
-              });
-            },
-            child: Text(
-              'O\'zbek',
-              style: TextStyle(color: _isUzbek ? Colors.amber : Colors.white),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _isUzbek = false;
-              });
-            },
-            child: Text(
-              'Arab',
-              style: TextStyle(
-                color: !_isUzbek ? Colors.amber : Colors.black,
-              ),
-            ),
-          ),
-        ],
-      ),
-      body: ListView.builder(
-        itemCount: widget.uzSurah['ayahs'].length,
-        itemBuilder: (context, index) {
-          final uzAyah = widget.uzSurah['ayahs'][index];
-          final arAyah = widget.arSurah['ayahs'][index];
-
-          final text = _isUzbek
-              ? uzAyah['text'] ?? 'O\'zbekcha matn mavjud emas'
-              : arAyah['text'] ?? 'Arabcha matn mavjud emas';
-
-          return Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              '${index + 1}. $text',
-              style: TextStyle(
-                color: widget.isDarkMode ? Colors.white : Colors.black,
-              ),
-            ),
-          );
-        },
-      ),
-    );
+  String _formatDuration(Duration duration) {
+    String minutes = duration.inMinutes.toString().padLeft(2, '0');
+    String seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
+    return "$minutes:$seconds";
   }
 }
