@@ -43,11 +43,18 @@ class SplashScreen extends StatelessWidget {
   }
 }
 
-class RegistrationScreen extends StatelessWidget {
+class RegistrationScreen extends StatefulWidget {
+  @override
+  _RegistrationScreenState createState() => _RegistrationScreenState();
+}
+
+class _RegistrationScreenState extends State<RegistrationScreen> {
   final TextEditingController lastNameController = TextEditingController();
   final TextEditingController firstNameController = TextEditingController();
   final TextEditingController loginController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+
+  bool _isPasswordVisible = false;
 
   @override
   Widget build(BuildContext context) {
@@ -80,14 +87,6 @@ class RegistrationScreen extends StatelessWidget {
             ),
           ),
           Center(
-            child: Lottie.asset(
-              'lottie/dollar.json',
-              height: 400,
-              width: 400,
-              fit: BoxFit.cover,
-            ),
-          ),
-          Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -102,8 +101,8 @@ class RegistrationScreen extends StatelessWidget {
                       SizedBox(height: 10),
                       _buildTextField("Login", controller: loginController),
                       SizedBox(height: 10),
-                      _buildTextField("Parol",
-                          controller: passwordController, isPassword: true),
+                      _buildPasswordTextField("Parol",
+                          controller: passwordController),
                     ],
                   ),
                 ),
@@ -126,7 +125,6 @@ class RegistrationScreen extends StatelessWidget {
                           content: Text("Ma'lumotlar muvaffaqiyatli saqlandi!"),
                         ),
                       );
-                      // Corrected placement of else block
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -180,6 +178,36 @@ class RegistrationScreen extends StatelessWidget {
       style: TextStyle(color: Colors.white),
     );
   }
+
+  Widget _buildPasswordTextField(String hint,
+      {TextEditingController? controller}) {
+    return TextField(
+      controller: controller,
+      obscureText: !_isPasswordVisible,
+      decoration: InputDecoration(
+        labelText: hint,
+        hintStyle: TextStyle(color: Colors.white),
+        filled: true,
+        fillColor: Colors.white.withOpacity(0.2),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: BorderSide.none,
+        ),
+        suffixIcon: IconButton(
+          icon: Icon(
+            _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+            color: Colors.white,
+          ),
+          onPressed: () {
+            setState(() {
+              _isPasswordVisible = !_isPasswordVisible;
+            });
+          },
+        ),
+      ),
+      style: TextStyle(color: Colors.white),
+    );
+  }
 }
 
 class LoginScreen extends StatelessWidget {
@@ -194,11 +222,6 @@ class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("$firstName $lastName"),
-        centerTitle: true,
-        backgroundColor: Colors.purple,
-      ),
       body: Stack(
         children: [
           Container(
@@ -329,6 +352,9 @@ class _CurrencyScreenState extends State<CurrencyScreen> {
   }
 
   void showCurrencyDetails(BuildContext context, dynamic currency) {
+    TextEditingController amountController = TextEditingController();
+    bool isConvertingToDollar = true;
+
     showDialog(
       context: context,
       builder: (context) {
@@ -347,21 +373,34 @@ class _CurrencyScreenState extends State<CurrencyScreen> {
                 keyboardType: TextInputType.number,
               ),
               SizedBox(height: 20),
+              // Add a Text button for conversion direction
+              Text(isConvertingToDollar
+                  ? "So'mdan Dollarga o'tkazish"
+                  : "Dollardan So'mga o'tkazish"),
+              SizedBox(height: 10),
               ElevatedButton(
                 onPressed: () {
                   double rate = double.parse(currency['Rate']);
                   double amount = double.tryParse(amountController.text) ?? 0;
-                  double result = rate * amount;
+                  double result;
+
+                  // Perform conversion based on the current direction
+                  if (isConvertingToDollar) {
+                    result = amount / rate; // Convert UZS to USD
+                  } else {
+                    result = rate * amount; // Convert USD to UZS
+                  }
+
                   showDialog(
                     context: context,
                     builder: (context) {
                       return AlertDialog(
                         title: Text("${currency['Ccy']} Hisobi"),
-                        content: Text("Natija: $result ${currency['Ccy']}"),
+                        content: Text(
+                            "Natija: $result ${isConvertingToDollar ? 'USD' : 'UZS'}"),
                         actions: [
                           ElevatedButton(
                             onPressed: () {
-                              Navigator.pop(context);
                               Navigator.pop(context);
                             },
                             child: Text("Qaytish"),
@@ -372,6 +411,27 @@ class _CurrencyScreenState extends State<CurrencyScreen> {
                   );
                 },
                 child: Text("Hisoblash"),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    // Toggle the conversion direction
+                    isConvertingToDollar = !isConvertingToDollar;
+                  });
+                },
+                child: Text(isConvertingToDollar
+                    ? "Dollarga o'tkazish"
+                    : "So'mga o'tkazish"),
+              ),
+              SizedBox(
+                height: 20,
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: Text("Qaytish"),
               ),
             ],
           ),
@@ -389,12 +449,25 @@ class _CurrencyScreenState extends State<CurrencyScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text("${widget.surname} ${widget.name}"),
-            Text(
-              TimeOfDay.now().format(context),
-              style: TextStyle(fontSize: 16),
+            StreamBuilder<DateTime>(
+              stream:
+                  Stream.periodic(Duration(seconds: 1), (_) => DateTime.now()),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return Text("Loading...");
+                final now = snapshot.data!;
+                final formattedTime =
+                    "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
+                return Text(
+                  formattedTime,
+                  style: TextStyle(fontSize: 16),
+                );
+              },
             ),
             IconButton(
-              icon: Icon(Icons.exit_to_app),
+              icon: Icon(
+                Icons.exit_to_app,
+                color: Colors.white,
+              ),
               onPressed: () {
                 Navigator.pushNamedAndRemoveUntil(
                     context, '/', (route) => false);
@@ -404,64 +477,90 @@ class _CurrencyScreenState extends State<CurrencyScreen> {
         ),
       ),
       body: currencies.isEmpty
-          ? Center(child: CircularProgressIndicator())
+          ? Center(
+              child: CircularProgressIndicator(),
+            )
           : ListView.builder(
               itemCount: currencies.length,
               itemBuilder: (context, index) {
                 final currency = currencies[index];
-                return Card(
-                  margin: EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-                  child: Padding(
-                    padding: const EdgeInsets.all(10.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Yaqinlangan kun: ${currency['Date']}",
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
-                        SizedBox(height: 5),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                GestureDetector(
+                return Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Yaqinlangan kun: ${currency['Date']}",
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                      SizedBox(height: 5),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(top: 0),
+                                child: GestureDetector(
                                   onTap: () {
                                     showCurrencyDetails(context, currency);
                                   },
                                   child: Text(
-                                    "1 ${currency['Ccy']} (${currency['CcyNm_UZ']})",
+                                    "1 ${currency['Ccy']}",
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ),
-                                SizedBox(height: 5),
-                                Text(
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  left: 150,
+                                ),
+                                child: Text(
+                                  " (${currency['CcyNm_UZ']})",
+                                  style: TextStyle(
+                                    color:
+                                        const Color.fromARGB(255, 0, 85, 155),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(height: 5),
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  left: 150,
+                                ),
+                                child: Text(
                                   "${currency['Rate']}",
                                   style: TextStyle(
-                                    fontSize: 22,
+                                    fontSize: 25,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                              ],
-                            ),
-                            Text(
-                              "${currency['Diff']}",
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: double.parse(currency['Diff']) > 0
-                                    ? Colors.green
-                                    : Colors.red,
                               ),
+                            ],
+                          ),
+                          Text(
+                            "${currency['Diff']}",
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: double.parse(currency['Diff']) > 0
+                                  ? Colors.green
+                                  : Colors.red,
                             ),
-                          ],
-                        ),
-                      ],
-                    ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(
+                        height: 50,
+                      ),
+                      Divider(
+                        color: Colors.black,
+                        height: 4,
+                      ),
+                    ],
                   ),
                 );
               },
