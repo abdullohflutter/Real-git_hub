@@ -82,8 +82,8 @@ class RegistrationScreen extends StatelessWidget {
           Center(
             child: Lottie.asset(
               'lottie/dollar.json',
-              height: 300,
-              width: 300,
+              height: 400,
+              width: 400,
               fit: BoxFit.cover,
             ),
           ),
@@ -110,20 +110,33 @@ class RegistrationScreen extends StatelessWidget {
                 SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text("Ma'lumotlar muvaffaqiyatli saqlandi!"),
-                      ),
-                    );
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => LoginScreen(
-                          firstName: firstNameController.text,
-                          lastName: lastNameController.text,
+                    if (lastNameController.text.isEmpty ||
+                        firstNameController.text.isEmpty ||
+                        loginController.text.isEmpty ||
+                        passwordController.text.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content:
+                              Text("Iltimos, barcha maydonlarni to'ldiring!"),
                         ),
-                      ),
-                    );
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text("Ma'lumotlar muvaffaqiyatli saqlandi!"),
+                        ),
+                      );
+                      // Corrected placement of else block
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => LoginScreen(
+                            firstName: firstNameController.text,
+                            lastName: lastNameController.text,
+                          ),
+                        ),
+                      );
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.purple.shade700,
@@ -155,7 +168,7 @@ class RegistrationScreen extends StatelessWidget {
       controller: controller,
       obscureText: isPassword,
       decoration: InputDecoration(
-        hintText: hint,
+        labelText: hint,
         hintStyle: TextStyle(color: Colors.white),
         filled: true,
         fillColor: Colors.white.withOpacity(0.2),
@@ -172,6 +185,9 @@ class RegistrationScreen extends StatelessWidget {
 class LoginScreen extends StatelessWidget {
   final String firstName;
   final String lastName;
+
+  final TextEditingController loginController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
 
   LoginScreen({required this.firstName, required this.lastName});
 
@@ -205,24 +221,35 @@ class LoginScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 20.0),
                   child: Column(
                     children: [
-                      _buildTextField("Login"),
+                      _buildTextField("Login", controller: loginController),
                       SizedBox(height: 10),
-                      _buildTextField("Parol", isPassword: true),
+                      _buildTextField("Parol",
+                          isPassword: true, controller: passwordController),
                     ],
                   ),
                 ),
                 SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CurrencyScreen(
-                          name: "Abdulloh",
-                          surname: "Akramov",
+                    // Check if login and password are correct
+                    if (loginController.text == "123" &&
+                        passwordController.text == "321") {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CurrencyScreen(
+                            name: "Abdulloh",
+                            surname: "Akramov",
+                          ),
                         ),
-                      ),
-                    );
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text("Login yoki parol xato!"),
+                        ),
+                      );
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
@@ -248,8 +275,10 @@ class LoginScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTextField(String hint, {bool isPassword = false}) {
+  Widget _buildTextField(String hint,
+      {bool isPassword = false, TextEditingController? controller}) {
     return TextField(
+      controller: controller,
       obscureText: isPassword,
       decoration: InputDecoration(
         hintText: hint,
@@ -278,6 +307,7 @@ class CurrencyScreen extends StatefulWidget {
 
 class _CurrencyScreenState extends State<CurrencyScreen> {
   List<dynamic> currencies = [];
+  final TextEditingController amountController = TextEditingController();
 
   @override
   void initState() {
@@ -286,16 +316,68 @@ class _CurrencyScreenState extends State<CurrencyScreen> {
   }
 
   Future<void> fetchCurrencyData() async {
-    final response = await http
-        .get(Uri.parse('https://cbu.uz/uz/arkhiv-kursov-valyut/json/'));
+    final response = await http.get(
+      Uri.parse('https://cbu.uz/uz/arkhiv-kursov-valyut/json/'),
+    );
     if (response.statusCode == 200) {
       setState(() {
         currencies = jsonDecode(response.body);
       });
     } else {
-      // Handle error
       throw Exception('Failed to load currency data');
     }
+  }
+
+  void showCurrencyDetails(BuildContext context, dynamic currency) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("${currency['Ccy']}: Malumotlari"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text("Qiymati: ${currency['Rate']}"),
+              Text("Valyutasi: ${currency['CcyNm_UZ']}"),
+              TextField(
+                controller: amountController,
+                decoration: InputDecoration(
+                  labelText: "Miqdorni Kiriting",
+                ),
+                keyboardType: TextInputType.number,
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  double rate = double.parse(currency['Rate']);
+                  double amount = double.tryParse(amountController.text) ?? 0;
+                  double result = rate * amount;
+                  showDialog(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        title: Text("${currency['Ccy']} Hisobi"),
+                        content: Text("Natija: $result ${currency['Ccy']}"),
+                        actions: [
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              Navigator.pop(context);
+                            },
+                            child: Text("Qaytish"),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+                child: Text("Hisoblash"),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -310,6 +392,13 @@ class _CurrencyScreenState extends State<CurrencyScreen> {
             Text(
               TimeOfDay.now().format(context),
               style: TextStyle(fontSize: 16),
+            ),
+            IconButton(
+              icon: Icon(Icons.exit_to_app),
+              onPressed: () {
+                Navigator.pushNamedAndRemoveUntil(
+                    context, '/', (route) => false);
+              },
             ),
           ],
         ),
@@ -338,11 +427,16 @@ class _CurrencyScreenState extends State<CurrencyScreen> {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  "1 ${currency['Ccy']} (${currency['CcyNm_UZ']})",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
+                                GestureDetector(
+                                  onTap: () {
+                                    showCurrencyDetails(context, currency);
+                                  },
+                                  child: Text(
+                                    "1 ${currency['Ccy']} (${currency['CcyNm_UZ']})",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                                 SizedBox(height: 5),
