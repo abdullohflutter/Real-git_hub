@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:lottie/lottie.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(MyApp());
@@ -55,6 +56,28 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final TextEditingController passwordController = TextEditingController();
 
   bool _isPasswordVisible = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  // Load the saved user data (first name and last name) from SharedPreferences
+  _loadUserData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      firstNameController.text = prefs.getString('firstName') ?? '';
+      lastNameController.text = prefs.getString('lastName') ?? '';
+    });
+  }
+
+  // Save the user data (first name and last name) in SharedPreferences
+  _saveUserData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString('firstName', firstNameController.text);
+    prefs.setString('lastName', lastNameController.text);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -120,6 +143,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         ),
                       );
                     } else {
+                      // Save user data in SharedPreferences
+                      _saveUserData();
+
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text("Ma'lumotlar muvaffaqiyatli saqlandi!"),
@@ -261,8 +287,8 @@ class LoginScreen extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (context) => CurrencyScreen(
-                            name: "Abdulloh",
-                            surname: "Akramov",
+                            name: firstName,
+                            surname: lastName,
                           ),
                         ),
                       );
@@ -305,15 +331,15 @@ class LoginScreen extends StatelessWidget {
       obscureText: isPassword,
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.black54),
+        hintStyle: TextStyle(color: Colors.white),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: Colors.white.withOpacity(0.2),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
           borderSide: BorderSide.none,
         ),
       ),
-      style: TextStyle(color: Colors.black),
+      style: TextStyle(color: Colors.white),
     );
   }
 }
