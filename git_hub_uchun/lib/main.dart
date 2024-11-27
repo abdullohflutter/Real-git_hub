@@ -63,7 +63,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     _loadUserData();
   }
 
-  // Load the saved user data (first name and last name) from SharedPreferences
   _loadUserData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -72,7 +71,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     });
   }
 
-  // Save the user data (first name and last name) in SharedPreferences
   _saveUserData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setString('firstName', firstNameController.text);
@@ -143,7 +141,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         ),
                       );
                     } else {
-                      // Save user data in SharedPreferences
                       _saveUserData();
 
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -280,7 +277,6 @@ class LoginScreen extends StatelessWidget {
                 SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: () {
-                    // Check if login and password are correct
                     if (loginController.text == "123" &&
                         passwordController.text == "321") {
                       Navigator.push(
@@ -399,7 +395,6 @@ class _CurrencyScreenState extends State<CurrencyScreen> {
                 keyboardType: TextInputType.number,
               ),
               SizedBox(height: 20),
-              // Add a Text button for conversion direction
               Text(isConvertingToDollar
                   ? "So'mdan Dollarga o'tkazish"
                   : "Dollardan So'mga o'tkazish"),
@@ -410,11 +405,10 @@ class _CurrencyScreenState extends State<CurrencyScreen> {
                   double amount = double.tryParse(amountController.text) ?? 0;
                   double result;
 
-                  // Perform conversion based on the current direction
                   if (isConvertingToDollar) {
-                    result = amount / rate; // Convert UZS to USD
+                    result = amount / rate;
                   } else {
-                    result = rate * amount; // Convert USD to UZS
+                    result = rate * amount;
                   }
 
                   showDialog(
@@ -442,7 +436,6 @@ class _CurrencyScreenState extends State<CurrencyScreen> {
               ElevatedButton(
                 onPressed: () {
                   setState(() {
-                    // Toggle the conversion direction
                     isConvertingToDollar = !isConvertingToDollar;
                   });
                 },
